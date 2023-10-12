@@ -16,6 +16,25 @@ import { ImageResizer } from "./extensions/image-resizer";
 import { EditorProps } from "@tiptap/pm/view";
 import { Editor as EditorClass, Extensions } from "@tiptap/core";
 import { NovelContext } from "./provider";
+import { Comment } from './plugins/Comment';
+import { v4 } from "uuid";
+
+interface IComment {
+  id: string
+  content: string
+  replies: Comment[]
+  createdAt: Date
+}
+
+
+const getNewComment = (content: string): IComment => {
+  return {
+    id: `a${v4()}a`,
+    content,
+    replies: [],
+    createdAt: new Date()
+  }
+}
 
 export default function Editor({
   completionApi = "/api/generate",
@@ -86,6 +105,37 @@ export default function Editor({
 
   const [hydrated, setHydrated] = useState(false);
 
+  const [comments, setComments] = useState<IComment[]>([])
+
+  const [activeCommentId, setActiveCommentId] = useState<string | null>(null)
+
+  const commentsSectionRef = useRef<HTMLDivElement | null>(null)
+
+  const focusCommentWithActiveId = (id: string) => {
+    if (!commentsSectionRef.current) return
+
+    const commentInput = commentsSectionRef.current.querySelector<HTMLInputElement>(`input#${id}`)
+
+    if (!commentInput) return
+
+    commentInput.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'center'
+    })
+  }
+
+  useEffect(
+    () => {
+      if (!activeCommentId) return
+
+      focusCommentWithActiveId(activeCommentId)
+    }
+    , [activeCommentId]
+  )
+
+
+
   const debouncedUpdates = useDebouncedCallback(async ({ editor }) => {
     const json = editor.getJSON();
     onDebouncedUpdate(editor);
@@ -96,7 +146,20 @@ export default function Editor({
   }, debounceDuration);
 
   const editor = useEditor({
-    extensions: [...defaultExtensions, ...extensions],
+    extensions: [
+      ...defaultExtensions, 
+      ...extensions,
+      Comment.configure({
+        HTMLAttributes: {
+          class: "my-comment",
+        },
+        onCommentActivated: (commentId) => {
+          setActiveCommentId(commentId);
+    
+          if (commentId) setTimeout(() => focusCommentWithActiveId(commentId));
+        },
+      }),
+    ],
     editorProps: {
       ...defaultEditorProps,
       ...editorProps,
@@ -116,7 +179,6 @@ export default function Editor({
             chars: 5000,
           })
         );
-        // complete(e.editor.storage.markdown.getMarkdown());
         va.track("Autocomplete Shortcut Used");
       } else {
         onUpdate(e.editor);
@@ -125,6 +187,19 @@ export default function Editor({
     },
     autofocus: "end",
   });
+
+  const setComment = () => {
+    const newComment = getNewComment('')
+
+    setComments([...comments, newComment])
+
+    // @ts-ignore
+    editor?.commands?.setComment?.(newComment.id)
+
+    setActiveCommentId(newComment.id)
+
+    setTimeout(focusCommentWithActiveId)
+  }
 
   const { complete, completion, isLoading, stop } = useCompletion({
     id: "novel",
@@ -208,14 +283,85 @@ export default function Editor({
       }}
     >
       <div
-        onClick={() => {
-          editor?.chain().focus().run();
-        }}
+        // onClick={() => {
+        //   editor?.chain().focus().run();
+        // }}
         className={className}
       >
-        {editor && <EditorBubbleMenu editor={editor} />}
+        {editor && <EditorBubbleMenu setComment={setComment} editor={editor} />}
         {editor?.isActive("image") && <ImageResizer editor={editor} />}
         <EditorContent editor={editor} />
+
+        <section className='flex flex-col gap-2 p-2 border rounded-lg w-96 border-slate-200' ref={commentsSectionRef}>
+              {
+                comments.length ? (
+                  comments.map(comment => (
+                    <div
+                      key={comment.id}
+                      className={`flex flex-col gap-4 p-2 border rounded-lg border-slate-400 ${comment.id === activeCommentId ? 'border-blue-400 border-2' : ''} box-border`}
+                    >
+                      <span className='flex items-end gap-2'>
+                        <a href='#' className='font-semibold border-b border-blue-200'>
+                          commentor
+                        </a>
+
+                        <span className='text-xs text-slate-400'>
+                          {comment.createdAt.toLocaleDateString()}
+                        </span>
+                      </span>
+
+                      <input
+                        value={comment.content || ''}
+                        disabled={comment.id !== activeCommentId}
+                        className={`p-2 rounded-lg text-inherit bg-transparent focus:outline-none ${comment.id === activeCommentId ? 'bg-slate-600' : ''}`}
+                        id={comment.id}
+                        onInput={
+                          (event) => {
+                            const value = (event.target as HTMLInputElement).value
+
+                            setComments(comments.map(comment => {
+                              if (comment.id === activeCommentId) {
+                                return {
+                                  ...comment,
+                                  content: value
+                                }
+                              }
+
+                              return comment
+                            }))
+                          }
+                        }
+                        onKeyDown={
+                          (event) => {
+                            if (event.key !== 'Enter') return
+
+                            setActiveCommentId(null)
+                          }
+                        }
+                      />
+
+                      {
+                        comment.id === activeCommentId && (
+                          <button
+                            className='rounded-md bg-white/10 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-white/20'
+                            onClick={() => {
+                              setActiveCommentId(null)
+                              editor?.commands.focus()
+                            }}
+                          >
+                            Save
+                          </button>
+                        )
+                      }
+                    </div>
+                  ))
+                ) : (
+                  <span className='pt-8 text-center text-slate-400'>
+                    No comments yet
+                  </span>
+                )
+              }
+            </section>
       </div>
     </NovelContext.Provider>
   );

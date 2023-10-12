@@ -19,38 +19,39 @@ export interface BubbleMenuItem {
   icon: typeof BoldIcon;
 }
 
-type EditorBubbleMenuProps = Omit<BubbleMenuProps, "children">;
+type EditorBubbleMenuProps = Omit<BubbleMenuProps, "children"> & {  setComment: () => void; };
 
 export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
-  const items: BubbleMenuItem[] = [
+
+  const items: BubbleMenuItem[] = !props.editor ? [] : [
     {
       name: "bold",
-      isActive: () => props.editor.isActive("bold"),
-      command: () => props.editor.chain().focus().toggleBold().run(),
+      isActive: () => props.editor!.isActive("bold"),
+      command: () => props.editor!.chain().focus().toggleBold().run(),
       icon: BoldIcon,
     },
     {
       name: "italic",
-      isActive: () => props.editor.isActive("italic"),
-      command: () => props.editor.chain().focus().toggleItalic().run(),
+      isActive: () => props.editor!.isActive("italic"),
+      command: () => props.editor!.chain().focus().toggleItalic().run(),
       icon: ItalicIcon,
     },
     {
       name: "underline",
-      isActive: () => props.editor.isActive("underline"),
-      command: () => props.editor.chain().focus().toggleUnderline().run(),
+      isActive: () => props.editor!.isActive("underline"),
+      command: () => props.editor!.chain().focus().toggleUnderline().run(),
       icon: UnderlineIcon,
     },
     {
       name: "strike",
-      isActive: () => props.editor.isActive("strike"),
-      command: () => props.editor.chain().focus().toggleStrike().run(),
+      isActive: () => props.editor!.isActive("strike"),
+      command: () => props.editor!.chain().focus().toggleStrike().run(),
       icon: StrikethroughIcon,
     },
     {
       name: "code",
-      isActive: () => props.editor.isActive("code"),
-      command: () => props.editor.chain().focus().toggleCode().run(),
+      isActive: () => props.editor!.isActive("code"),
+      command: () => props.editor!.chain().focus().toggleCode().run(),
       icon: CodeIcon,
     },
   ];
@@ -89,8 +90,12 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
       {...bubbleMenuProps}
       className="novel-flex novel-w-fit novel-divide-x novel-divide-stone-200 novel-rounded novel-border novel-border-stone-200 novel-bg-white novel-shadow-xl"
     >
-      <NodeSelector
+      {
+        props.editor && (
+          <>
+          <NodeSelector
         editor={props.editor}
+        setComment={props.setComment}
         isOpen={isNodeSelectorOpen}
         setIsOpen={() => {
           setIsNodeSelectorOpen(!isNodeSelectorOpen);
@@ -107,10 +112,13 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           setIsNodeSelectorOpen(false);
         }}
       />
+          </>
+        )
+      }
       <div className="novel-flex">
-        {items.map((item, index) => (
+        {items.map((item) => (
           <button
-            key={index}
+            key={item.name}
             onClick={item.command}
             className="novel-p-2 novel-text-stone-600 hover:novel-bg-stone-100 active:novel-bg-stone-200"
             type="button"
@@ -123,7 +131,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           </button>
         ))}
       </div>
-      <ColorSelector
+      {props.editor && (<ColorSelector
         editor={props.editor}
         isOpen={isColorSelectorOpen}
         setIsOpen={() => {
@@ -131,7 +139,7 @@ export const EditorBubbleMenu: FC<EditorBubbleMenuProps> = (props) => {
           setIsNodeSelectorOpen(false);
           setIsLinkSelectorOpen(false);
         }}
-      />
+      />)}
     </BubbleMenu>
   );
 };
