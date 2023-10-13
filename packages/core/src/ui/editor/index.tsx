@@ -16,10 +16,11 @@ import { ImageResizer } from "./extensions/image-resizer";
 import { EditorProps } from "@tiptap/pm/view";
 import { Editor as EditorClass, Extensions } from "@tiptap/core";
 import { NovelContext } from "./provider";
-import { Comment } from './plugins/Comment';
 import { v4 } from "uuid";
+import { Comment } from './plugins/comment';
+import { Comments } from "./components/Comments";
 
-interface IComment {
+export interface IComment {
   id: string
   content: string
   replies: Comment[]
@@ -104,8 +105,9 @@ export default function Editor({
   const [content, setContent] = useLocalStorage(storageKey, defaultValue);
 
   const [hydrated, setHydrated] = useState(false);
-
-  const [comments, setComments] = useState<IComment[]>([])
+  const savedComments = JSON.parse(window.localStorage.getItem('comments') || "[]");
+  
+  const [comments, setComments] = useState<IComment[]>(savedComments)
 
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null)
 
@@ -151,9 +153,9 @@ export default function Editor({
       ...extensions,
       Comment.configure({
         HTMLAttributes: {
-          class: "my-comment",
+          class: "ck-comment-marker",
         },
-        onCommentActivated: (commentId) => {
+        onCommentActivated: (commentId: string) => {
           setActiveCommentId(commentId);
     
           if (commentId) setTimeout(() => focusCommentWithActiveId(commentId));
@@ -193,13 +195,16 @@ export default function Editor({
 
     setComments([...comments, newComment])
 
-    // @ts-ignore
-    editor?.commands?.setComment?.(newComment.id)
+    editor?.commands.setComment(newComment.id)
 
     setActiveCommentId(newComment.id)
 
     setTimeout(focusCommentWithActiveId)
   }
+
+  useEffect(() => {
+    window.localStorage.setItem('comments', JSON.stringify(comments))
+  }, [comments])
 
   const { complete, completion, isLoading, stop } = useCompletion({
     id: "novel",
@@ -282,6 +287,7 @@ export default function Editor({
         completionApi,
       }}
     >
+      <div className="flex">
       <div
         // onClick={() => {
         //   editor?.chain().focus().run();
@@ -292,76 +298,12 @@ export default function Editor({
         {editor?.isActive("image") && <ImageResizer editor={editor} />}
         <EditorContent editor={editor} />
 
-        <section className='flex flex-col gap-2 p-2 border rounded-lg w-96 border-slate-200' ref={commentsSectionRef}>
-              {
-                comments.length ? (
-                  comments.map(comment => (
-                    <div
-                      key={comment.id}
-                      className={`flex flex-col gap-4 p-2 border rounded-lg border-slate-400 ${comment.id === activeCommentId ? 'border-blue-400 border-2' : ''} box-border`}
-                    >
-                      <span className='flex items-end gap-2'>
-                        <a href='#' className='font-semibold border-b border-blue-200'>
-                          commentor
-                        </a>
+      </div>
 
-                        <span className='text-xs text-slate-400'>
-                          {comment.createdAt.toLocaleDateString()}
-                        </span>
-                      </span>
 
-                      <input
-                        value={comment.content || ''}
-                        disabled={comment.id !== activeCommentId}
-                        className={`p-2 rounded-lg text-inherit bg-transparent focus:outline-none ${comment.id === activeCommentId ? 'bg-slate-600' : ''}`}
-                        id={comment.id}
-                        onInput={
-                          (event) => {
-                            const value = (event.target as HTMLInputElement).value
-
-                            setComments(comments.map(comment => {
-                              if (comment.id === activeCommentId) {
-                                return {
-                                  ...comment,
-                                  content: value
-                                }
-                              }
-
-                              return comment
-                            }))
-                          }
-                        }
-                        onKeyDown={
-                          (event) => {
-                            if (event.key !== 'Enter') return
-
-                            setActiveCommentId(null)
-                          }
-                        }
-                      />
-
-                      {
-                        comment.id === activeCommentId && (
-                          <button
-                            className='rounded-md bg-white/10 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-white/20'
-                            onClick={() => {
-                              setActiveCommentId(null)
-                              editor?.commands.focus()
-                            }}
-                          >
-                            Save
-                          </button>
-                        )
-                      }
-                    </div>
-                  ))
-                ) : (
-                  <span className='pt-8 text-center text-slate-400'>
-                    No comments yet
-                  </span>
-                )
-              }
-            </section>
+      <section className='flex flex-col novel-gap-2 novel-rounded-md novel-ml-2 p-2 border novel-w-80 border-slate-200' ref={commentsSectionRef}>
+          <Comments activeCommentId={activeCommentId} comments={comments} editor={editor} setActiveCommentId={setActiveCommentId} setComments={setComments} />
+        </section>
       </div>
     </NovelContext.Provider>
   );

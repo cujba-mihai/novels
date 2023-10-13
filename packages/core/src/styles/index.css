@@ -22,6 +22,9 @@
   --novel-highlight-pink: #faf1f5;
   --novel-highlight-gray: #f1f1ef;
 
+  --ck-color-comment-marker: #fdf05d;
+  --ck-color-comment-marker-text: black;
+  
   --font-title: "Cal Sans", sans-serif;
 }
 
@@ -53,4 +56,11 @@
 @font-face {
   font-family: "Cal Sans";
   src: local("Cal Sans"), url(CalSans-SemiBold.otf) format("otf");
+}
+
+.ck-comment-marker {
+  background: var(--ck-color-comment-marker);
+  color: var(--ck-color-comment-marker-text);
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
 }

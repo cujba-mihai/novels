@@ -14,7 +14,7 @@ import {
 import * as Popover from "@radix-ui/react-popover";
 import { Dispatch, FC, SetStateAction } from "react";
 import { BubbleMenuItem } from ".";
-import { CommentIcon } from "../plugins/CommentIcon";
+import { CommentIcon } from "@/ui/icons/comment-icon";
 
 
 interface NodeSelectorProps {
