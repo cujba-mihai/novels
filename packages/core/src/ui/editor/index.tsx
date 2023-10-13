@@ -105,7 +105,7 @@ export default function Editor({
   const [content, setContent] = useLocalStorage(storageKey, defaultValue);
 
   const [hydrated, setHydrated] = useState(false);
-  const savedComments = JSON.parse(window.localStorage.getItem('comments') || "[]");
+  const savedComments: IComment[] = typeof window !== 'undefined' ? JSON.parse(window?.localStorage?.getItem('comments') || "[]") : [];
   
   const [comments, setComments] = useState<IComment[]>(savedComments)
 
@@ -203,7 +203,7 @@ export default function Editor({
   }
 
   useEffect(() => {
-    window.localStorage.setItem('comments', JSON.stringify(comments))
+    window?.localStorage.setItem('comments', JSON.stringify(comments))
   }, [comments])
 
   const { complete, completion, isLoading, stop } = useCompletion({

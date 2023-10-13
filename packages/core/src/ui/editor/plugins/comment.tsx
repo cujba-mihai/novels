@@ -81,7 +81,7 @@ export const Comment = Mark.create<CommentOptions, CommentStorage>({
     if (!marks.length) {
       this.storage.activeCommentId = null;
       this.options.onCommentActivated(this.storage.activeCommentId || '');
-      window.localStorage.setItem('activeCommentId', 'null')
+      window?.localStorage.setItem('activeCommentId', 'null')
       return;
     }
 
@@ -93,7 +93,7 @@ export const Comment = Mark.create<CommentOptions, CommentStorage>({
     this.options.onCommentActivated(this.storage.activeCommentId || '');
 
     // Check if 'activeCommentId' exists in 'this.storage' and set it in localStorage
-    window.localStorage.setItem('activeCommentId', this.storage.activeCommentId || '');
+    window?.localStorage.setItem('activeCommentId', this.storage.activeCommentId || '');
 
   },
 
@@ -116,7 +116,7 @@ export const Comment = Mark.create<CommentOptions, CommentStorage>({
 
             commands.setMark("comment", { commentId, commentText });
 
-            window.localStorage.setItem('activeCommentId', `${commentId}`);
+            window?.localStorage.setItem('activeCommentId', `${commentId}`);
 
           },
       unsetComment:
